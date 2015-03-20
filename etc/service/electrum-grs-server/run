@@ -1,0 +1,40 @@
+#!/bin/sh
+set -e
+. /etc/container_environment.sh
+
+COIN=GroestlCoin
+
+if [ -z ${COINDIR} ]
+then
+  COINDIR=${COINDIR:-/home/coin/.${COIN}}
+  echo "export COINDIR=${COINDIR}" >> /etc/container_environment.sh
+fi
+APP=electrum-grs-server
+USER=${USER:-coin}
+
+echo "$(date) Waiting for groestlcoin.conf in ${COINDIR}"
+while true
+do
+  test -f "${COINDIR}"/${COIN}.conf && break
+  sleep 1
+done
+echo "$(date) Allowing groestlcoind 30sec to startup"
+sleep 30
+
+echo "Starting ${APP}"
+cd /app
+
+
+if [ -d /home/${USER} ] ; then
+   chown -R  ${USER}.${USER} /home/${USER}
+fi
+
+chmod +x /app/start.sh
+chown -R ${USER}.${USER} /app
+touch /var/log/electrum-grs.log
+chown ${USER}.${USER} /var/log/electrum-grs.log
+chown -R ${USER}.${USER} /var/electrum-grs-server
+chown ${USER}.${USER} /etc/electrum-grs.conf
+cp /etc/container_environment.sh /app/electrum-grs-server.env
+chown ${USER}.${SUSER} /app/electrum-grs-server.env
+exec su ${USER} -c /app/start.sh
